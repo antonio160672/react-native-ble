@@ -8,6 +8,7 @@ import {
 import Layout from './bluetooth/components/bluetooth-list-layout';
 import Empty from './bluetooth/components/empty';
 import Togger from './bluetooth/components/togger';
+import Form from './bluetooth/components/form';
 import Subtitle from './bluetooth/components/subtitle';
 import BluetoothSerial from 'react-native-bluetooth-serial-next';
 import { Button } from 'react-native-elements';
@@ -15,6 +16,7 @@ import Divice from './bluetooth/components/divice';
 import { BleManager, Device, Service, Characteristic, Descriptor } from 'react-native-ble-plx';
 import base64 from 'react-native-base64'
 import RNFetchBlob from 'react-native-fetch-blob';
+import Toast from 'react-native-simple-toast';
 
 
 const manager = new BleManager();
@@ -23,6 +25,7 @@ const dispo = [{
     id: 9,
     deviceID: "84:2F:7D:04:A1:7F"
 }]
+let expeNameG=""
 const servicio = new Service();
 function BluetoothList(props) {
 
@@ -32,6 +35,8 @@ function BluetoothList(props) {
     const [man, setManager] = useState(manager);
     const [devi, setDevice] = useState(dispo);
     //const [descriptors, setDescriptors] = useState<Descriptor>([]); 
+
+    const [expeName, setExperiment]= useState('')
 
     const [bolEnable, setBolEna] = useState(false)
     const renderEmpty = () => <Empty text='No hay dispositivos' />
@@ -44,7 +49,7 @@ function BluetoothList(props) {
     }
 
 
-
+//modificar para conectar al dispositivo
     const scanAndConnect = async () => {
         console.log('do scanAndConnect');
         manager.startDeviceScan(null, null, async (error, device) => {
@@ -57,7 +62,7 @@ function BluetoothList(props) {
                 return;
             }
 
-            if (device.id === "84:2F:7D:04:A1:7F") {
+            if (device.id === "84:2F:7D:04:A1:7F") {//cambiar mac 
                 manager.stopDeviceScan();
                 console.log('scan stopped, connecting');
 
@@ -98,18 +103,6 @@ function BluetoothList(props) {
                                 console.log('funcion manager', manager);
                             }
                         });
-                        // var RNFS = require('react-native-fs');
-                        // const basePath = Platform.select({
-                        //     ios: RNFS.MainBundlePath,
-                        //     android: RNFS.DocumentDirectoryPath,
-                        // });
-                        // RNFS.readFile(basePath + '/folder1/1.txt')
-                        //     .then((result) => {
-                        //         console.log('GOT RESULT', result);
-                        //     })
-                        //     .catch((err) => {
-                        //         console.log(err.message, err.code);
-                        //     });
                         device.monitorCharacteristicForService(
                             descriptors.serviceUUID,
                             descriptors.characteristicUUID,
@@ -120,10 +113,13 @@ function BluetoothList(props) {
                                 } else {
                                     console.log("Se puede leer la característicae:", update.isReadable);
                                     if (update.isReadable) {
+                                        console.log("Nombre del experiemto global", expeNameG);
                                         console.log("dato en basse 64", update.value);
                                         console.log("acelerometro:", base64.decode(update.value));
                                         var characteristic = base64.decode(update.value);
                                         var pieces = characteristic.split(",");
+                                        pieces.push(expeNameG)
+                                        console.log(pieces);
                                         arraF.push(pieces)
                                     }
 
@@ -145,12 +141,14 @@ function BluetoothList(props) {
 
     const csvdata = async () => { 
         // construct csvString
-        const headerString = 'X-acele,Y-acele, Z-acele\n';
-        const rowString = arraF.map(d => `${d[0]},${d[1]},${d[2]}\n`).join('');
+        const headerString = 'X-acele,Y-acele, Z-acele, Experimento\n';
+        const rowString = arraF.map(d => `${d[0]},${d[1]},${d[2]},${d[3]}\n`).join('');
         const csvString = `${headerString}${rowString}`;
 
         // write the current list of answers to a local csv file
-        const pathToWrite = "/storage/emulated/0/Android/data/com.ejemplo/files" +"data.csv";
+        //const pathToWrite = "/storage/emulated/0/Android/data/com.ejemplo/files/experimento.csv";
+        
+        const pathToWrite = "/storage/emulated/0/Download/data.csv";
         console.log('pathToWrite', pathToWrite);
         // pathToWrite /storage/emulated/0/Download/data.csv
         RNFetchBlob.fs
@@ -187,16 +185,22 @@ function BluetoothList(props) {
     }, [manager])
 
     const enableBluetooth = async () => {
-        try {
-            await BluetoothSerial.requestEnable()
-            //const lista = await BluetoothSerial.list()
-            ///await BluetoothSerial.stopScanning()
-            setLista(dispo)
-            setBolEna(true)
-        } catch (error) {
-            console.log(error)
+        if(expeName.length > 0){
+            try {
+                await BluetoothSerial.requestEnable()
+                expeNameG=expeName
+                //const lista = await BluetoothSerial.list()
+                ///await BluetoothSerial.stopScanning()
+                setLista(dispo)
+                setBolEna(true)
+            } catch (error) {
+                console.log(error)
+            }
+        }else{
+            Toast.show('Favor de ingresar el nombre el experimeto', Toast.LONG);  
         }
     }
+
     const disableBluetooth = async () => {
         try {
             await BluetoothSerial.disable()
@@ -214,13 +218,25 @@ function BluetoothList(props) {
         }
         disableBluetooth();
     }
-    const disconect = value => {
+
+    const clickButton = () => { 
+        expeNameG=expeName
+        console.log(expeNameG)
+
+        if(expeName.length > 0){
+            Toast.show('Experimento guardado');  
+        }else{
+            Toast.show('Favor de ingresar el nombre el experimeto', Toast.LONG);  
+        }         
+    }
+
+    const disconect = () => {
+        arraF.pop()
+        console.log("entro a la desconexion");
         man.cancelDeviceConnection("84:2F:7D:04:A1:7F")
         console.log("data:", arraF);
         csvdata()
     }
-
-
 
     return (
         <Layout title='Bluetooth'>
@@ -228,6 +244,17 @@ function BluetoothList(props) {
                 value={bolEnable}
                 onValueChange={toggleBluetooth}
             />
+            <Form
+                onPress={clickButton}
+                onChangeText={(text) => setExperiment(text)}
+            />
+            {bolEnable && (
+                <Button
+                    onPress={disconect}
+                    title="Terminar experimentación"
+                    type="Outline"
+                />
+            )}
             <Subtitle title="Lista de Dispositivos" />
             {bolEnable && (
                 <FlatList
@@ -236,13 +263,6 @@ function BluetoothList(props) {
                     renderItem={
                         renderItem
                     }
-                />
-            )}
-            {bolEnable && (
-                <Button
-                    onPress={disconect}
-                    title="Desconectar"
-                    type="Outline"
                 />
             )}
 
