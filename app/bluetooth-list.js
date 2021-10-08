@@ -62,7 +62,7 @@ function BluetoothList(props) {
                 return;
             }
 
-            if (device.id === "84:2F:7D:04:A1:7F") {//cambiar mac 
+            if (device.id === dispo.deviceID) {//cambiar mac 
                 manager.stopDeviceScan();
                 console.log('scan stopped, connecting');
 
