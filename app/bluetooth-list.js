@@ -62,7 +62,7 @@ function BluetoothList(props) {
                 return;
             }
 
-            if (device.id === dispo.deviceID) {//cambiar mac 
+            if (device.id === dispo[0].deviceID) {//cambiar mac 
                 manager.stopDeviceScan();
                 console.log('scan stopped, connecting');
 
@@ -233,7 +233,7 @@ function BluetoothList(props) {
     const disconect = () => {
         arraF.pop()
         console.log("entro a la desconexion");
-        man.cancelDeviceConnection("84:2F:7D:04:A1:7F")
+        man.cancelDeviceConnection(dispo[0].deviceID)
         console.log("data:", arraF);
         csvdata()
     }
